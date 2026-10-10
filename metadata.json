@@ -1,0 +1,6 @@
+{
+  "name": "AUTHENTIX — Blockchain Product Authenticity Platform",
+  "description": "Trust every product. Verify every scan. Cryptographic digital twins, zero-knowledge Merkle proofs, and decentralized provenance ledger on Ethereum Sepolia.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

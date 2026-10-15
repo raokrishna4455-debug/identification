@@ -13,27 +13,23 @@ import { ExplorerView } from './views/ExplorerView';
 import { ManufacturerView } from './views/ManufacturerView';
 import { TrackerView } from './views/TrackerView';
 import { AuthView } from './views/AuthView';
-import { INITIAL_PRODUCTS } from './data/mockBlockchain';
+import { 
+  getStoredProducts, 
+  saveStoredProducts, 
+  clearAllStoredData, 
+  INITIAL_PRODUCTS 
+} from './data/mockBlockchain';
 import { ProductItem, CustodyCheckpoint, UserProfile } from './types';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<string>('home');
-  const [selectedBarcode, setSelectedBarcode] = useState<string>('8901030865421');
-  const [productsMap, setProductsMap] = useState<Record<string, ProductItem>>(INITIAL_PRODUCTS);
+  const [selectedBarcode, setSelectedBarcode] = useState<string>('');
+  const [productsMap, setProductsMap] = useState<Record<string, ProductItem>>(() => getStoredProducts());
 
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     try {
       const stored = localStorage.getItem('authentix_user');
-      return stored ? JSON.parse(stored) : {
-        id: 'usr-default',
-        name: 'Hans Wilsdorf Jr.',
-        email: 'rolex.admin@authentix.io',
-        role: 'manufacturer' as const,
-        organization: 'Rolex SA',
-        licenseNumber: 'GS1-CH-761329',
-        walletAddress: '0x7F2e918c42a8b9e1028374829104829108a9D882',
-        joinedDate: '2025-01-01'
-      };
+      return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
@@ -83,10 +79,14 @@ export default function App() {
   };
 
   const handleAddNewProduct = (newProduct: ProductItem) => {
-    setProductsMap((prev) => ({
-      ...prev,
-      [newProduct.barcode]: newProduct
-    }));
+    setProductsMap((prev) => {
+      const updated = {
+        ...prev,
+        [newProduct.barcode]: newProduct
+      };
+      saveStoredProducts(updated);
+      return updated;
+    });
     setSelectedBarcode(newProduct.barcode);
   };
 
@@ -94,14 +94,30 @@ export default function App() {
     setProductsMap((prev) => {
       const existing = prev[barcode];
       if (!existing) return prev;
-      return {
+      const updated = {
         ...prev,
         [barcode]: {
           ...existing,
           custodyPath: [...existing.custodyPath, checkpoint]
         }
       };
+      saveStoredProducts(updated);
+      return updated;
     });
+  };
+
+  const handleClearAllData = () => {
+    clearAllStoredData();
+    setProductsMap({});
+    setSelectedBarcode('');
+    setCurrentUser(null);
+  };
+
+  const handleSeedSampleData = () => {
+    setProductsMap(INITIAL_PRODUCTS);
+    saveStoredProducts(INITIAL_PRODUCTS);
+    const firstBarcode = Object.keys(INITIAL_PRODUCTS)[0];
+    if (firstBarcode) setSelectedBarcode(firstBarcode);
   };
 
   const productsList = Object.values(productsMap);
@@ -112,7 +128,7 @@ export default function App() {
       <Navbar
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
-        onOpenQuickScan={() => handleVerifyBarcode('8901030865421')}
+        onOpenQuickScan={() => handleVerifyBarcode('')}
         currentUser={currentUser}
         onOpenAuth={() => handleSelectTab('auth')}
         onLogout={handleLogout}
@@ -124,6 +140,7 @@ export default function App() {
           <HomeView
             onSelectTab={handleSelectTab}
             onVerifyBarcode={handleVerifyBarcode}
+            productsMap={productsMap}
           />
         )}
 
@@ -137,6 +154,7 @@ export default function App() {
         {currentTab === 'verify-product' && (
           <VerifyView
             initialBarcode={selectedBarcode}
+            productsMap={productsMap}
             onSelectTab={handleSelectTab}
             onOpenTracker={handleOpenTracker}
           />
@@ -148,23 +166,28 @@ export default function App() {
             selectedBarcode={selectedBarcode}
             onSelectProduct={(code) => setSelectedBarcode(code)}
             onUpdateCustodyCheckpoint={handleUpdateCustodyCheckpoint}
+            onNavigateTab={handleSelectTab}
           />
         )}
 
         {currentTab === 'authenticity-dashboard' && (
           <DashboardView
+            products={productsList}
             onInspectBarcode={handleVerifyBarcode}
+            onNavigateTab={handleSelectTab}
           />
         )}
 
         {currentTab === 'blockchain-explorer' && (
           <ExplorerView
+            productsMap={productsMap}
             onInspectBarcode={handleVerifyBarcode}
           />
         )}
 
         {currentTab === 'manufacturer-portal' && (
           <ManufacturerView
+            currentUser={currentUser}
             existingProducts={productsList}
             onAddNewProduct={handleAddNewProduct}
             onSelectTab={handleSelectTab}
@@ -173,7 +196,13 @@ export default function App() {
       </main>
 
       {/* Global Footer */}
-      <Footer onSelectTab={handleSelectTab} />
+      <Footer 
+        onSelectTab={handleSelectTab}
+        hasStoredData={productsList.length > 0}
+        onClearAllData={handleClearAllData}
+        onSeedSampleData={handleSeedSampleData}
+      />
     </div>
   );
 }
+

@@ -1,21 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart3, 
   TrendingUp, 
   ShieldCheck, 
   ShieldAlert, 
   Building2, 
-  Clock, 
   Search, 
-  Filter, 
   Globe2, 
   Cpu, 
-  AlertTriangle, 
-  CheckCircle2, 
-  ArrowUpRight,
-  RefreshCw,
-  Fuel
+  Fuel,
+  PlusCircle,
+  MapPin,
+  QrCode
 } from 'lucide-react';
+import { ProductItem } from '../types';
 
 interface ScanEvent {
   id: string;
@@ -29,54 +27,77 @@ interface ScanEvent {
   block: number;
 }
 
-const INITIAL_SCANS: ScanEvent[] = [
-  { id: 'sc-1', barcode: '8901030865421', productName: 'Chronograph Regalia · Ref. 4109', brand: 'Rolex SA', location: 'Geneva, Switzerland', status: 'GENUINE', timestamp: '3s ago', gasPrice: 14.1, block: 19402120 },
-  { id: 'sc-2', barcode: '079357318392', productName: 'BioTech Peptide Serum #98B', brand: 'Genentech', location: 'San Francisco, USA', status: 'GENUINE', timestamp: '8s ago', gasPrice: 13.8, block: 19402119 },
-  { id: 'sc-3', barcode: '9998887776665', productName: 'Duplicate Label Collision Detected', brand: 'Unauthorized Copy', location: 'Guangzhou, CN', status: 'COUNTERFEIT', timestamp: '15s ago', gasPrice: 16.5, block: 19402119 },
-  { id: 'sc-4', barcode: '4006381333931', productName: 'Zeiss Optic Lens 50mm f/1.2 S', brand: 'Carl Zeiss AG', location: 'Frankfurt, Germany', status: 'GENUINE', timestamp: '24s ago', gasPrice: 14.2, block: 19402118 },
-  { id: 'sc-5', barcode: '1112223334445', productName: 'Cold Chain Pharma Excursion', brand: 'Apex BioTherapeutics', location: 'Frankfurt Air Hub, DE', status: 'TAMPERED', timestamp: '42s ago', gasPrice: 14.0, block: 19402117 },
-  { id: 'sc-6', barcode: '5901234123457', productName: 'Vintage Bordeaux Grand Cru 2018', brand: 'Château Margaux', location: 'Bordeaux, France', status: 'GENUINE', timestamp: '1m ago', gasPrice: 13.9, block: 19402116 },
-  { id: 'sc-7', barcode: '8901030865421', productName: 'Chronograph Regalia · Ref. 4109', brand: 'Rolex SA', location: 'New York Boutique, USA', status: 'GENUINE', timestamp: '2m ago', gasPrice: 14.4, block: 19402115 }
-];
+interface DashboardViewProps {
+  products?: ProductItem[];
+  onInspectBarcode?: (code: string) => void;
+  onNavigateTab?: (tab: string) => void;
+}
 
-export const DashboardView: React.FC<{ onInspectBarcode?: (code: string) => void }> = ({ onInspectBarcode }) => {
-  const [scans, setScans] = useState<ScanEvent[]>(INITIAL_SCANS);
+export const DashboardView: React.FC<DashboardViewProps> = ({ 
+  products = [], 
+  onInspectBarcode,
+  onNavigateTab 
+}) => {
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLiveStreaming, setIsLiveStreaming] = useState(true);
 
-  // Periodic simulated live ticker pulse
-  useEffect(() => {
-    if (!isLiveStreaming) return;
-    const interval = setInterval(() => {
-      const locations = ['London, UK', 'Tokyo, Japan', 'Seoul, South Korea', 'Milan, Italy', 'Singapore', 'Zurich, Switzerland'];
-      const sampleNames = [
-        { name: 'Rolex Oyster Perpetual Cosmograph', brand: 'Rolex SA', code: '8901030865421', status: 'GENUINE' as const },
-        { name: 'Genentech Oncological Antibody Vial', brand: 'Genentech', code: '079357318392', status: 'GENUINE' as const },
-        { name: 'Zeiss Cine High-Speed Lens T1.3', brand: 'Carl Zeiss AG', code: '4006381333931', status: 'GENUINE' as const },
-        { name: 'Rogue Serial Duplicate Collision', brand: 'Unknown Replica Syndicate', code: '9998887776665', status: 'COUNTERFEIT' as const }
-      ];
-      const randomSample = sampleNames[Math.floor(Math.random() * sampleNames.length)];
-      const randomLoc = locations[Math.floor(Math.random() * locations.length)];
-      const newScan: ScanEvent = {
-        id: `sc-${Date.now()}`,
-        barcode: randomSample.code,
-        productName: randomSample.name,
-        brand: randomSample.brand,
-        location: randomLoc,
-        status: randomSample.status,
-        timestamp: 'Just now',
-        gasPrice: Number((13.5 + Math.random() * 2).toFixed(1)),
-        block: 19402120 + Math.floor(Math.random() * 10)
-      };
+  // Derive real scans from user registered products and their custody events
+  const productScans: ScanEvent[] = products.flatMap((p) => {
+    const events: ScanEvent[] = [
+      {
+        id: `sc-mint-${p.barcode}`,
+        barcode: p.barcode,
+        productName: p.title,
+        brand: p.brand,
+        location: p.originCountry || 'Manufacturing Plant',
+        status: p.status === 'GENUINE' ? 'GENUINE' : p.status === 'TAMPERED' ? 'TAMPERED' : 'COUNTERFEIT',
+        timestamp: 'Genesis Mint',
+        gasPrice: 14.1,
+        block: p.proof?.blockNumber || 19402120
+      }
+    ];
 
-      setScans((prev) => [newScan, ...prev.slice(0, 19)]);
-    }, 4500);
+    if (p.custodyPath && Array.isArray(p.custodyPath)) {
+      p.custodyPath.forEach((cp, idx) => {
+        events.push({
+          id: `sc-cp-${p.barcode}-${idx}`,
+          barcode: p.barcode,
+          productName: p.title,
+          brand: p.brand,
+          location: cp.location || 'Custody Hub',
+          status: cp.tamperSealIntact ? 'GENUINE' : 'TAMPERED',
+          timestamp: cp.timestamp || 'Recent',
+          gasPrice: 13.8,
+          block: cp.blockNumber || 19402122
+        });
+      });
+    }
+    return events;
+  });
 
-    return () => clearInterval(interval);
-  }, [isLiveStreaming]);
+  // Calculate live dynamic metrics
+  const totalProducts = products.length;
+  const totalCheckpoints = products.reduce((acc, p) => acc + (p.custodyPath?.length || 0), 0);
+  const totalScansAudited = productScans.length;
+  const activeBrands = Array.from(new Set(products.map((p) => p.brand).filter(Boolean)));
+  const uniqueFacilities = Array.from(
+    new Set(products.flatMap((p) => p.custodyPath?.map((c) => c.location).filter(Boolean) || []))
+  );
 
-  const filteredScans = scans.filter((s) => {
+  // Dynamic category breakdown
+  const categoryCounts: Record<string, number> = {};
+  products.forEach((p) => {
+    const cat = p.category || 'Other Goods';
+    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+  });
+
+  const categoryEntries = Object.entries(categoryCounts).map(([label, count]) => ({
+    label,
+    count,
+    pct: totalProducts > 0 ? Math.round((count / totalProducts) * 100) : 0
+  }));
+
+  const filteredScans = productScans.filter((s) => {
     const matchesFilter = filterStatus === 'ALL' || s.status === filterStatus;
     const matchesSearch = s.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           s.barcode.includes(searchQuery) ||
@@ -99,22 +120,15 @@ export const DashboardView: React.FC<{ onInspectBarcode?: (code: string) => void
             Authenticity Dashboard & Metrics
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Global scan throughput, counterfeit interception vectors, and smart contract health across all nodes.
+            Global scan throughput, custody checkpoints, and smart contract health computed directly from active ledger data.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsLiveStreaming(!isLiveStreaming)}
-            className={`px-3 py-1.5 rounded-lg border font-mono text-xs font-semibold flex items-center gap-2 transition-colors ${
-              isLiveStreaming
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                : 'bg-slate-100 border-slate-200 text-slate-600'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full ${isLiveStreaming ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-            <span>{isLiveStreaming ? 'Live Stream Active' : 'Stream Paused'}</span>
-          </button>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 font-mono text-xs text-emerald-800">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Ledger Sync: Active</span>
+          </div>
 
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 font-mono text-xs text-slate-600">
             <Fuel className="w-3.5 h-3.5 text-amber-500" />
@@ -129,57 +143,65 @@ export const DashboardView: React.FC<{ onInspectBarcode?: (code: string) => void
         {/* Metric 1 */}
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2 hover:border-emerald-300 transition-colors">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-heading font-semibold uppercase tracking-wider">Total Scans Audited</span>
+            <span className="text-xs font-heading font-semibold uppercase tracking-wider">Registered Products</span>
             <span className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4" />
             </span>
           </div>
-          <div className="font-heading text-3xl font-bold text-slate-900">1,429,812</div>
+          <div className="font-heading text-3xl font-bold text-slate-900 font-mono tabular-nums">
+            {totalProducts}
+          </div>
           <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>+14.8% vs last epoch (Sepolia)</span>
+            <span>{totalProducts > 0 ? `${totalProducts} active digital twins` : 'Awaiting first batch mint'}</span>
           </div>
         </div>
 
         {/* Metric 2 */}
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2 hover:border-sky-300 transition-colors">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-heading font-semibold uppercase tracking-wider">Consensus Accuracy</span>
+            <span className="text-xs font-heading font-semibold uppercase tracking-wider">Custody Checkpoints</span>
             <span className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center">
-              <Cpu className="w-4 h-4" />
+              <MapPin className="w-4 h-4" />
             </span>
           </div>
-          <div className="font-heading text-3xl font-bold text-slate-900">99.82%</div>
+          <div className="font-heading text-3xl font-bold text-slate-900 font-mono tabular-nums">
+            {totalCheckpoints}
+          </div>
           <div className="text-xs text-slate-500 font-mono">
-            0.000% False Positives (Q1 Audit)
+            {uniqueFacilities.length} physical facilities recorded
           </div>
         </div>
 
         {/* Metric 3 */}
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2 hover:border-rose-300 transition-colors">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-heading font-semibold uppercase tracking-wider">Counterfeits Quarantined</span>
-            <span className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center">
-              <ShieldAlert className="w-4 h-4" />
+            <span className="text-xs font-heading font-semibold uppercase tracking-wider">Ledger Events Ingested</span>
+            <span className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center">
+              <Cpu className="w-4 h-4" />
             </span>
           </div>
-          <div className="font-heading text-3xl font-bold text-slate-900">2,574</div>
-          <div className="text-xs text-rose-600 font-medium">
-            100% duplicate attempts intercepted
+          <div className="font-heading text-3xl font-bold text-slate-900 font-mono tabular-nums">
+            {totalScansAudited}
+          </div>
+          <div className="text-xs text-purple-700 font-medium">
+            100% on-chain cryptographic consensus
           </div>
         </div>
 
         {/* Metric 4 */}
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2 hover:border-amber-300 transition-colors">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-heading font-semibold uppercase tracking-wider">Active Manufacturers</span>
+            <span className="text-xs font-heading font-semibold uppercase tracking-wider">Active Brand Authorities</span>
             <span className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center">
               <Building2 className="w-4 h-4" />
             </span>
           </div>
-          <div className="font-heading text-3xl font-bold text-slate-900">842 Brands</div>
-          <div className="text-xs text-slate-500 font-mono">
-            Across 42 sovereign jurisdictions
+          <div className="font-heading text-3xl font-bold text-slate-900 font-mono tabular-nums">
+            {activeBrands.length} {activeBrands.length === 1 ? 'Brand' : 'Brands'}
+          </div>
+          <div className="text-xs text-slate-500 font-mono truncate">
+            {activeBrands.length > 0 ? activeBrands.join(', ') : 'No registered brands yet'}
           </div>
         </div>
 
@@ -193,118 +215,98 @@ export const DashboardView: React.FC<{ onInspectBarcode?: (code: string) => void
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-heading text-base font-bold text-slate-900">
-                Verification Volume by Industry Sector
+                Registered Product Categories
               </h2>
               <p className="text-xs text-slate-500">
-                Percentage of on-chain zero-knowledge queries by high-value product categories
+                Breakdown of active batches and physical product lines on the blockchain ledger
               </p>
             </div>
-            <span className="font-mono text-xs text-slate-500">30-Day Window</span>
+            <span className="font-mono text-xs text-slate-500">Live State</span>
           </div>
 
-          <div className="space-y-4">
-            {[
-              { label: 'Haute Horlogerie & Luxury Timepieces', pct: 38, count: '543,328', color: 'bg-emerald-600' },
-              { label: 'Biotechnology & Cold-Chain Pharmaceuticals', pct: 28, count: '400,347', color: 'bg-sky-600' },
-              { label: 'Precision Optics & Industrial Instruments', pct: 18, count: '257,366', color: 'bg-teal-600' },
-              { label: 'Fine Wines, Spirits & Agro-Provenance', pct: 11, count: '157,279', color: 'bg-amber-600' },
-              { label: 'High-End Consumer Electronics & Avionics', pct: 5, count: '71,492', color: 'bg-slate-700' }
-            ].map((cat) => (
-              <div key={cat.label} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-slate-800">{cat.label}</span>
-                  <div className="flex items-center gap-3 font-mono">
-                    <span className="text-slate-500">{cat.count} scans</span>
-                    <span className="font-semibold text-slate-900 w-10 text-right">{cat.pct}%</span>
+          {categoryEntries.length > 0 ? (
+            <div className="space-y-4">
+              {categoryEntries.map((cat) => (
+                <div key={cat.label} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-slate-800">{cat.label}</span>
+                    <div className="flex items-center gap-3 font-mono">
+                      <span className="text-slate-500">{cat.count} {cat.count === 1 ? 'batch' : 'batches'}</span>
+                      <span className="font-semibold text-slate-900 w-10 text-right tabular-nums">{cat.pct}%</span>
+                    </div>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-600 rounded-full transition-all duration-500" 
+                      style={{ width: `${cat.pct}%` }}
+                    ></div>
                   </div>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                  <div 
-                    className={`${cat.color} h-full rounded-full transition-all duration-700`}
-                    style={{ width: `${cat.pct}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-mono">
-            <span>Primary Standard: GS1 General Specs v23.0</span>
-            <span className="text-emerald-700 font-semibold">Zero-Knowledge Oracle Synced</span>
-          </div>
-        </div>
-
-        {/* Threat Radar & Fraud Defense (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-heading text-base font-bold text-slate-900 flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-rose-600" />
-                Interception Vectors
-              </h2>
-              <p className="text-xs text-slate-500">
-                Active fraud mechanisms blocked by protocol rules
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center border border-dashed border-slate-200 rounded-xl space-y-2">
+              <BarChart3 className="w-8 h-8 text-slate-300 mx-auto" />
+              <div className="text-xs font-semibold text-slate-700">No Product Categories Enrolled</div>
+              <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                Mint your first product batch in the Manufacturer Portal to view live categorization and telemetry.
               </p>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 font-mono text-[11px] font-semibold">
-              Live Radar
-            </span>
+          )}
+        </div>
+
+        {/* Security & Consensus Integrity (5 cols) */}
+        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-heading text-base font-bold text-slate-900">
+                Cryptographic Consensus
+              </h2>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-semibold">
+                Sepolia Testnet
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">
+              Zero-knowledge proof verification pipeline and validator consensus status
+            </p>
           </div>
 
           <div className="space-y-3">
-            {[
-              {
-                title: 'Duplicate Barcode Collision Attack',
-                desc: 'Photocopied EAN-13 labels queried from conflicting geographic IP coordinates within 15 minutes.',
-                count: '1,894 Blocked',
-                severity: 'High'
-              },
-              {
-                title: 'Cold-Chain IoT Temperature Excursions',
-                desc: 'Oracle flagged transit temperature exceeding 8°C in biological vaccine payloads.',
-                count: '412 Quarantined',
-                severity: 'Critical'
-              },
-              {
-                title: 'Unspent Token Replay Attempt',
-                desc: 'Black market reseller attempting to redeem revoked or previously transferred soulbound warranty.',
-                count: '268 Rejected',
-                severity: 'Medium'
-              }
-            ].map((threat, idx) => (
-              <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-heading font-semibold text-xs text-slate-900">{threat.title}</span>
-                  <span className="font-mono text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                    {threat.count}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  {threat.desc}
-                </p>
-              </div>
-            ))}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+              <span className="text-slate-600 font-medium">Merkle Root Engine</span>
+              <span className="font-mono text-emerald-700 font-semibold">Keccak256 (SHA-3)</span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+              <span className="text-slate-600 font-medium">Signature Standard</span>
+              <span className="font-mono text-sky-700 font-semibold">ECDSA secp256k1</span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+              <span className="text-slate-600 font-medium">Smart Contract State</span>
+              <span className="font-mono text-slate-700 font-semibold">0x71F32A...Verified</span>
+            </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Oracle Node Status: 24/24 Online</span>
-            <span className="text-emerald-700 font-mono font-semibold">100% Defense Rate</span>
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-mono">
+            <span>Validator Nodes Sync</span>
+            <span className="text-emerald-700 font-semibold">24 / 24 Connected</span>
           </div>
         </div>
 
       </div>
 
-      {/* Global Real-Time Scan Stream Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden space-y-4 p-6">
+      {/* Real-Time Live Audit Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
               <Globe2 className="w-5 h-5 text-emerald-600" />
-              Live Global Verification Stream
+              Live Ledger Audit Stream
             </h2>
             <p className="text-xs text-slate-500">
-              Real-time audit events ingested across authorized point-of-sale and customs checkpoints
+              Audit events ingested across authorized point-of-sale and manufacturing checkpoints
             </p>
           </div>
 
@@ -356,8 +358,33 @@ export const DashboardView: React.FC<{ onInspectBarcode?: (code: string) => void
             <tbody className="divide-y divide-slate-100 font-mono">
               {filteredScans.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400 font-sans">
-                    No scan logs matching active search criteria.
+                  <td colSpan={7} className="py-12 text-center text-slate-400 font-sans">
+                    <div className="space-y-3 max-w-sm mx-auto">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                        <QrCode className="w-5 h-5" />
+                      </div>
+                      <div className="text-sm font-semibold text-slate-700">No Ledger Audit Records Found</div>
+                      <p className="text-xs text-slate-500">
+                        There are no verification events recorded yet. Mint a product batch or scan a barcode to generate live telemetry.
+                      </p>
+                      {onNavigateTab && (
+                        <div className="pt-1 flex justify-center gap-2">
+                          <button
+                            onClick={() => onNavigateTab('manufacturer-portal')}
+                            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-heading text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                          >
+                            <PlusCircle className="w-3.5 h-3.5" />
+                            <span>Mint First Batch</span>
+                          </button>
+                          <button
+                            onClick={() => onNavigateTab('verify-product')}
+                            className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-heading text-xs font-semibold transition-colors"
+                          >
+                            Scan Barcode
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (

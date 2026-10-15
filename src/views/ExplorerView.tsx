@@ -17,13 +17,18 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { RECENT_TRANSACTIONS, MERKLE_TREE_DATA } from '../data/mockBlockchain';
-import { BlockTransaction, MerkleNode } from '../types';
+import { BlockTransaction, MerkleNode, ProductItem } from '../types';
 
-export const ExplorerView: React.FC<{ onInspectBarcode?: (code: string) => void }> = ({ onInspectBarcode }) => {
+interface ExplorerViewProps {
+  productsMap?: Record<string, ProductItem>;
+  onInspectBarcode?: (code: string) => void;
+}
+
+export const ExplorerView: React.FC<ExplorerViewProps> = ({ productsMap = {}, onInspectBarcode }) => {
   const [activeTab, setActiveTab] = useState<'merkle' | 'transactions' | 'contract'>('merkle');
   const [selectedLeaf, setSelectedLeaf] = useState<string>('leaf-1');
   const [copiedText, setCopiedText] = useState<string | null>(null);
-  const [contractQueryInput, setContractQueryInput] = useState('8901030865421');
+  const [contractQueryInput, setContractQueryInput] = useState('');
   const [queryResult, setQueryResult] = useState<string | null>(null);
   const [isQuerying, setIsQuerying] = useState(false);
 
@@ -34,18 +39,32 @@ export const ExplorerView: React.FC<{ onInspectBarcode?: (code: string) => void 
   };
 
   const handleContractQuery = () => {
+    const trimmed = contractQueryInput.trim();
+    if (!trimmed) return;
     setIsQuerying(true);
     setTimeout(() => {
       setIsQuerying(false);
-      setQueryResult(`Contract Call Result for ${contractQueryInput}:
+      const item = productsMap[trimmed];
+      if (item) {
+        setQueryResult(`Contract Call Result for ${item.barcode}:
 • Status: 1 (GENUINE_AUTHENTICATED)
-• Token ID: #4109 (ERC-721 Soulbound)
-• Authorized Manufacturer: 0x71F32A4B892c9082d4992147FeE7bF05719Ab301 (Rolex SA)
-• Merkle Leaf Keccak256: 0x49e1028ba48201fa8723491bc8271e84a82194c2
-• Mint Block Confirmation: #19402118 (12,410 Confirmations)
-• Gas Consumed: 21,480 gas`);
+• Title: ${item.title}
+• Token ID: #${item.proof.tokenId || '1'} (${item.proof.tokenStandard || 'ERC-721 Soulbound'})
+• Authorized Manufacturer: ${item.manufacturerAddress || '0x71F32A4B892c9082d4992147FeE7bF05719Ab301'} (${item.brand})
+• Merkle Leaf Keccak256: ${item.proof.merkleLeafHash || '0x49e1028ba48201fa8723491bc8271e84a82194c2'}
+• Mint Block Confirmation: #${item.proof.blockNumber || 19402118}
+• Merkle Root: ${item.proof.merkleRoot}
+• Gas Consumed: ${item.proof.gasUsed || '21,480 gas'}`);
+      } else {
+        setQueryResult(`Contract Call Result for ${trimmed}:
+• Status: 0 (REVERTED / UNMINTED_BARCODE)
+• Error: "ERC721URIStorage: Token not minted for requested GTIN hash"
+• Merkle Tree State: Non-existent leaf
+• Ledger Search: Zero matching digital twin entries across Sepolia blocks`);
+      }
     }, 450);
   };
+
 
   return (
     <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

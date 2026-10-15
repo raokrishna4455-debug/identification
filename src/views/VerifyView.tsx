@@ -24,19 +24,26 @@ import {
   FileText,
   RefreshCw,
   Sparkles,
-  Route
+  Route,
+  Navigation
 } from 'lucide-react';
-import { INITIAL_PRODUCTS, generateDynamicProduct } from '../data/mockBlockchain';
+import { verifyBarcodeInLedger } from '../data/mockBlockchain';
 import { ProductItem } from '../types';
 
 interface VerifyViewProps {
   initialBarcode?: string;
+  productsMap?: Record<string, ProductItem>;
   onSelectTab: (tab: string) => void;
   onOpenTracker?: (barcode?: string) => void;
 }
 
-export const VerifyView: React.FC<VerifyViewProps> = ({ initialBarcode, onSelectTab, onOpenTracker }) => {
-  const [barcodeInput, setBarcodeInput] = useState(initialBarcode || '8901030865421');
+export const VerifyView: React.FC<VerifyViewProps> = ({ 
+  initialBarcode, 
+  productsMap = {}, 
+  onSelectTab, 
+  onOpenTracker 
+}) => {
+  const [barcodeInput, setBarcodeInput] = useState(initialBarcode || '');
   const [activeMode, setActiveMode] = useState<'camera' | 'manual' | 'upload'>('camera');
   const [product, setProduct] = useState<ProductItem | null>(null);
   const [verificationStage, setVerificationStage] = useState<number>(0);
@@ -51,13 +58,12 @@ export const VerifyView: React.FC<VerifyViewProps> = ({ initialBarcode, onSelect
   const [cameraError, setCameraError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (initialBarcode) {
+    if (initialBarcode && initialBarcode.trim() !== '') {
       setBarcodeInput(initialBarcode);
       executeVerification(initialBarcode);
-    } else {
-      executeVerification('8901030865421');
     }
   }, [initialBarcode]);
+
 
   // Handle camera preview toggle
   useEffect(() => {
@@ -98,7 +104,7 @@ export const VerifyView: React.FC<VerifyViewProps> = ({ initialBarcode, onSelect
     setTimeout(() => setVerificationStage(4), 800);
 
     setTimeout(() => {
-      const item = INITIAL_PRODUCTS[trimmed] || generateDynamicProduct(trimmed);
+      const item = verifyBarcodeInLedger(trimmed, productsMap);
       setProduct(item);
       setIsVerifying(false);
       setVerificationStage(0);
@@ -148,6 +154,8 @@ export const VerifyView: React.FC<VerifyViewProps> = ({ initialBarcode, onSelect
     URL.revokeObjectURL(url);
   };
 
+  const registeredItems = Object.values(productsMap);
+
   return (
     <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
@@ -166,35 +174,30 @@ export const VerifyView: React.FC<VerifyViewProps> = ({ initialBarcode, onSelect
           </p>
         </div>
 
-        {/* Quick sample chips */}
+        {/* Registered items or ready badge */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-xs text-slate-500">Test Scenarios:</span>
-          <button
-            onClick={() => { setBarcodeInput('8901030865421'); executeVerification('8901030865421'); }}
-            className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-mono text-xs font-semibold transition-colors"
-          >
-            Rolex (Genuine)
-          </button>
-          <button
-            onClick={() => { setBarcodeInput('079357318392'); executeVerification('079357318392'); }}
-            className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 font-mono text-xs font-semibold transition-colors"
-          >
-            Biotech Serum
-          </button>
-          <button
-            onClick={() => { setBarcodeInput('9998887776665'); executeVerification('9998887776665'); }}
-            className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-800 font-mono text-xs font-semibold transition-colors"
-          >
-            Duplicate (Counterfeit)
-          </button>
-          <button
-            onClick={() => { setBarcodeInput('1112223334445'); executeVerification('1112223334445'); }}
-            className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-mono text-xs font-semibold transition-colors"
-          >
-            Thermal Tamper
-          </button>
+          {registeredItems.length > 0 ? (
+            <>
+              <span className="font-mono text-xs text-slate-500">Registered In Ledger:</span>
+              {registeredItems.slice(0, 3).map((item) => (
+                <button
+                  key={item.barcode}
+                  onClick={() => { setBarcodeInput(item.barcode); executeVerification(item.barcode); }}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-mono text-xs font-semibold transition-colors"
+                >
+                  {item.brand.split(' ')[0]} ({item.barcode})
+                </button>
+              ))}
+            </>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 font-mono text-xs text-slate-600">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Ledger Oracle Ready · Enter Barcode</span>
+            </div>
+          )}
         </div>
       </div>
+
 
       {/* Main Grid: Left Scanner / Controls, Right Live Verification Output */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -737,10 +740,10 @@ export const VerifyView: React.FC<VerifyViewProps> = ({ initialBarcode, onSelect
 
                     <button
                       onClick={() => onOpenTracker ? onOpenTracker(product.barcode) : onSelectTab('geo-tracker')}
-                      className="px-3.5 py-2.5 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 font-heading text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      className="px-3.5 py-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 font-heading text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <MapPin className="w-4 h-4 text-sky-600" />
-                      <span>Track Factory & Shop Location</span>
+                      <Navigation className="w-4 h-4 text-emerald-700" />
+                      <span>Track Order & Route on Map</span>
                     </button>
 
                     <button

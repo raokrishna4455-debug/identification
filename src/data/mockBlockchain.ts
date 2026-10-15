@@ -548,126 +548,90 @@ export const MERKLE_TREE_DATA: MerkleNode = {
   }
 };
 
-export function generateDynamicProduct(barcode: string): ProductItem {
+export const EMPTY_PRODUCTS: Record<string, ProductItem> = {};
+
+export function createUnregisteredProduct(barcode: string): ProductItem {
   const cleanCode = barcode.trim() || '0000000000000';
-  const pseudoRandomNum = cleanCode.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const isSuspicious = cleanCode.startsWith('999') || cleanCode.startsWith('000');
-
-  if (isSuspicious) {
-    return {
-      barcode: cleanCode,
-      upcFormat: 'Custom EAN / QR',
-      title: `Unregistered Artifact · ${cleanCode}`,
-      brand: 'Unregistered Independent Source',
-      category: 'Consumer Tech',
-      modelNumber: `UNREG-${cleanCode.slice(0, 6)}`,
-      serialNumber: `SN-UNREG-${cleanCode}`,
-      batchNumber: 'BATCH-UNKNOWN',
-      manufacturingDate: new Date().toISOString(),
-      originCountry: 'Unverified Origin',
-      authorizedManufacturer: 'None on Sepolia Registry',
-      manufacturerAddress: '0x0000000000000000000000000000000000000000',
-      status: 'UNREGISTERED',
-      statusMessage: 'No authentic digital twin exists on Sepolia ledger for this barcode.',
-      image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80',
-      description: 'This code was queried against the Sepolia Authentix Registry, but no cryptographic mint transaction or authorized manufacturer signature was discovered.',
-      specifications: {
-        'Status': 'Unregistered or counterfeit copy',
-        'Ledger Result': '0 matches in block range 18,000,000 - 19,500,000'
-      },
-      proof: {
-        contractAddress: '0x71F32A4B892c9082d4992147FeE7bF05719Ab301',
-        tokenId: '0',
-        tokenStandard: 'ERC-721',
-        merkleRoot: '0x0000000000000000000000000000000000000000000000000000000000000000',
-        merkleLeafHash: '0x0000000000000000000000000000000000000000',
-        merkleDepth: 0,
-        ecdsaSignature: 'NONE',
-        issuerPublicKey: 'NONE',
-        blockNumber: 19402120,
-        blockTimestamp: new Date().toISOString(),
-        txHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
-        ipfsMetadataUri: '',
-        gasUsed: '21,000 gas',
-        oracleConsensus: 'No consensus records found'
-      },
-      custodyPath: []
-    };
-  }
-
-  const hashSnippet = Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
   return {
     barcode: cleanCode,
-    upcFormat: cleanCode.length === 12 ? 'UPC-A' : 'EAN-13 (GS1 Registered)',
-    title: `Verified Precision Product · Code ${cleanCode}`,
-    brand: 'Authorized Industrial Consortium Partner',
-    category: 'Consumer Tech',
-    modelNumber: `MOD-PRC-${cleanCode.slice(-4)}`,
-    serialNumber: `SN-VERIFIED-${cleanCode}`,
-    batchNumber: `BATCH-2025-${(pseudoRandomNum % 89 + 10)}`,
-    manufacturingDate: '2025-01-20T10:00:00Z',
-    originCountry: 'Bavaria, Germany / Switzerland',
-    authorizedManufacturer: 'Authentix Enterprise Node #482',
-    manufacturerAddress: `0x${hashSnippet.slice(0, 40)}`,
-    status: 'GENUINE',
-    statusMessage: 'Cryptographically Verified · Genesis Record Valid on Sepolia',
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
-    description: 'Hardware product authenticated via zero-knowledge Merkle proof. Barcode hash matches genesis mint transaction with valid ECDSA secp256k1 signature.',
+    upcFormat: cleanCode.length === 12 ? 'UPC-A (GS1 General Specs)' : 'EAN-13 (GS1 International)',
+    title: `Unregistered Item (#${cleanCode})`,
+    brand: 'Unregistered / Unknown Brand',
+    category: 'Uncategorized',
+    modelNumber: 'N/A',
+    serialNumber: `SN-UNVERIFIED-${cleanCode}`,
+    batchNumber: 'N/A',
+    manufacturingDate: 'N/A',
+    originCountry: 'Unverified Physical Origin',
+    authorizedManufacturer: 'No Authorized Manufacturer Registered',
+    manufacturerAddress: '0x0000000000000000000000000000000000000000',
+    status: 'UNREGISTERED',
+    statusMessage: 'Not Found in Blockchain Ledger. Zero-knowledge proof verification failed.',
+    image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80',
+    description: 'This barcode was queried across all Ethereum Sepolia blocks, but no cryptographic digital twin, authorized mint transaction, or Merkle leaf was found. It may be an unregistered retail product or an unauthorized replica.',
     specifications: {
-      'Cryptographic Pair': 'Physical Barcode + Soulbound NFT',
-      'Merkle Depth': '14 Levels',
-      'Validation Engine': 'ECDSA secp256k1'
+      'Ledger Status': 'Unregistered / Zero Records Found',
+      'Merkle State': 'Non-existent leaf',
+      'Authority Check': 'Failed · No valid ECDSA signature'
     },
     proof: {
       contractAddress: '0x71F32A4B892c9082d4992147FeE7bF05719Ab301',
-      tokenId: `${(pseudoRandomNum * 7) % 9999 + 100}`,
-      tokenStandard: 'ERC-721',
-      merkleRoot: `0x${hashSnippet}`,
-      merkleLeafHash: `0x${hashSnippet.slice(0, 40)}`,
-      merkleDepth: 12,
-      ecdsaSignature: `0x${hashSnippet}1b`,
-      issuerPublicKey: `0x04${hashSnippet}`,
-      blockNumber: 19402118,
+      tokenId: '0',
+      tokenStandard: 'None',
+      merkleRoot: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      merkleLeafHash: '0x0000000000000000000000000000000000000000',
+      merkleDepth: 0,
+      ecdsaSignature: 'NONE',
+      issuerPublicKey: 'NONE',
+      blockNumber: 19402120,
       blockTimestamp: new Date().toISOString(),
-      txHash: `0x${hashSnippet}`,
-      ipfsMetadataUri: `ipfs://bafybei${cleanCode.slice(0, 8)}/metadata.json`,
-      gasUsed: '81,200 gas',
-      oracleConsensus: 'Consensus 100% · 24/24 Sepolia Validator Nodes Agreement'
+      txHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      ipfsMetadataUri: '',
+      gasUsed: '21,000 gas',
+      oracleConsensus: 'Consensus 0% · Zero node attestations'
     },
-    custodyPath: [
-      {
-        id: 'cp-dyn-1',
-        stage: 'Genesis Manufacture',
-        location: 'Authorized Cleanroom Production Node',
-        timestamp: '2025-01-20 10:00 UTC',
-        operator: 'Enterprise Batch Mint Key',
-        blockNumber: 19402118,
-        txHash: `0x${hashSnippet.slice(0, 10)}...`,
-        status: 'completed',
-        tamperSealIntact: true
-      },
-      {
-        id: 'cp-dyn-2',
-        stage: 'Distribution Hub Checkpoint',
-        location: 'Central Logistical Fulfillment Facility',
-        timestamp: '2025-01-24 15:30 UTC',
-        operator: 'Logistics Scanner #09',
-        blockNumber: 19420000,
-        txHash: `0x${hashSnippet.slice(10, 20)}...`,
-        status: 'completed',
-        tamperSealIntact: true
-      },
-      {
-        id: 'cp-dyn-3',
-        stage: 'Active In Custody / Verified by Scanner',
-        location: 'Verified Retail Channel',
-        timestamp: '2025-02-01 11:20 UTC',
-        operator: 'User Scan Verification',
-        blockNumber: 19440000,
-        txHash: `0x${hashSnippet.slice(20, 30)}...`,
-        status: 'current',
-        tamperSealIntact: true
-      }
-    ]
+    custodyPath: []
   };
 }
+
+export function verifyBarcodeInLedger(barcode: string, productsMap: Record<string, ProductItem>): ProductItem {
+  const cleanCode = barcode.trim();
+  if (productsMap[cleanCode]) {
+    return productsMap[cleanCode];
+  }
+  return createUnregisteredProduct(cleanCode);
+}
+
+// Storage helpers for user-managed data
+export function getStoredProducts(): Record<string, ProductItem> {
+  try {
+    const raw = localStorage.getItem('authentix_products');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return parsed;
+      }
+    }
+  } catch (_) {}
+  return {};
+}
+
+export function saveStoredProducts(products: Record<string, ProductItem>): void {
+  try {
+    localStorage.setItem('authentix_products', JSON.stringify(products));
+  } catch (_) {}
+}
+
+export function clearAllStoredData(): void {
+  try {
+    localStorage.removeItem('authentix_products');
+    localStorage.removeItem('authentix_user');
+    localStorage.removeItem('authentix_scans');
+  } catch (_) {}
+}
+
+// Backward compatibility alias for dynamic product resolution
+export function generateDynamicProduct(barcode: string): ProductItem {
+  return createUnregisteredProduct(barcode);
+}
+

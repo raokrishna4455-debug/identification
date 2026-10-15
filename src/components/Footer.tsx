@@ -3,9 +3,17 @@ import { ExternalLink, ShieldCheck } from 'lucide-react';
 
 interface FooterProps {
   onSelectTab: (tab: string) => void;
+  hasStoredData?: boolean;
+  onClearAllData?: () => void;
+  onSeedSampleData?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
+export const Footer: React.FC<FooterProps> = ({ 
+  onSelectTab, 
+  hasStoredData = false,
+  onClearAllData, 
+  onSeedSampleData 
+}) => {
   return (
     <footer className="w-full bg-slate-50 border-t border-slate-200 mt-16">
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -107,15 +115,6 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
               </li>
               <li>
                 <button
-                  onClick={() => onSelectTab('blockchain-explorer')}
-                  className="hover:text-emerald-700 transition-colors flex items-center gap-1.5"
-                >
-                  <span>Zero-Knowledge Snark Circuit Specs</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-              </li>
-              <li>
-                <button
                   onClick={() => onSelectTab('auth')}
                   className="hover:text-emerald-700 transition-colors flex items-center gap-1.5"
                 >
@@ -123,34 +122,42 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
                   <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                 </button>
               </li>
-              <li>
-                <button
-                  onClick={() => onSelectTab('blockchain-explorer')}
-                  className="hover:text-emerald-700 transition-colors flex items-center gap-1.5"
-                >
-                  <span>Node Telemetry Specs</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-              </li>
             </ul>
           </div>
 
-          {/* Col 4: Hackathon Showcase */}
+          {/* Col 4: Data Management Utilities */}
           <div className="space-y-3">
             <div className="font-heading text-sm font-semibold text-slate-900">
-              Hackathon Showcase
+              Registry Environment
             </div>
-            <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-              <div className="font-heading text-xs font-semibold text-sky-700 mb-1 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-sky-600" />
-                SIH Presentation Deployment
+            <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-3">
+              <div className="text-xs text-slate-600 leading-relaxed">
+                Operating in clean production mode with client-side zero-knowledge storage.
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Designed and engineered for national-level innovation track in tamper-evident supply chain traceability.
-              </p>
+              
+              <div className="flex flex-col gap-2 pt-1">
+                {onClearAllData && hasStoredData && (
+                  <button
+                    onClick={onClearAllData}
+                    className="w-full py-1.5 px-2.5 rounded-lg border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 font-heading text-xs font-semibold transition-colors text-center"
+                  >
+                    Clear All Stored Products & Logs
+                  </button>
+                )}
+                
+                {onSeedSampleData && !hasStoredData && (
+                  <button
+                    onClick={onSeedSampleData}
+                    className="w-full py-1.5 px-2.5 rounded-lg border border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 font-heading text-xs font-medium transition-colors text-center"
+                  >
+                    Load Sample Test Data (Optional)
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
+
 
         {/* Bottom copyright bar */}
         <div className="pt-6 border-t border-slate-200/80 flex flex-col md:flex-row items-center justify-between gap-4 font-mono text-xs text-slate-500">

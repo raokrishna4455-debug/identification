@@ -28,17 +28,18 @@ import {
   Shield,
   RefreshCw
 } from 'lucide-react';
-import { INITIAL_PRODUCTS, generateDynamicProduct } from '../data/mockBlockchain';
+import { verifyBarcodeInLedger } from '../data/mockBlockchain';
 import { ProductItem } from '../types';
 
 interface HomeViewProps {
   onSelectTab: (tab: string) => void;
   onVerifyBarcode: (barcode: string) => void;
+  productsMap?: Record<string, ProductItem>;
 }
 
-export const HomeView: React.FC<HomeViewProps> = ({ onSelectTab, onVerifyBarcode }) => {
-  const [barcodeInput, setBarcodeInput] = useState('8901030865421');
-  const [quickResult, setQuickResult] = useState<ProductItem | null>(INITIAL_PRODUCTS['8901030865421']);
+export const HomeView: React.FC<HomeViewProps> = ({ onSelectTab, onVerifyBarcode, productsMap = {} }) => {
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [quickResult, setQuickResult] = useState<ProductItem | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
   const handleQuickVerify = (codeToTest?: string) => {
@@ -46,7 +47,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onSelectTab, onVerifyBarcode
     if (!code) return;
     setIsVerifying(true);
     setTimeout(() => {
-      const found = INITIAL_PRODUCTS[code] || generateDynamicProduct(code);
+      const found = verifyBarcodeInLedger(code, productsMap);
       setQuickResult(found);
       setIsVerifying(false);
     }, 350);
@@ -56,6 +57,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onSelectTab, onVerifyBarcode
     setBarcodeInput(code);
     handleQuickVerify(code);
   };
+
 
   return (
     <div className="w-full">
@@ -158,37 +160,31 @@ export const HomeView: React.FC<HomeViewProps> = ({ onSelectTab, onVerifyBarcode
                 </button>
               </div>
 
-              {/* Sample Pre-loaded Chips */}
+              {/* Registered Items Quick Chips */}
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="font-mono text-[11px] text-slate-500">Sample items:</span>
-                
-                <button
-                  type="button"
-                  onClick={() => setSample('8901030865421')}
-                  className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-mono text-[11px] transition-colors flex items-center gap-1.5"
-                >
-                  <span>8901030865421</span>
-                  <span className="text-sky-700 font-semibold">(Timepiece)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSample('079357318392')}
-                  className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-mono text-[11px] transition-colors flex items-center gap-1.5"
-                >
-                  <span>079357318392</span>
-                  <span className="text-amber-700 font-semibold">(Serum)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSample('4006381333931')}
-                  className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-mono text-[11px] transition-colors flex items-center gap-1.5"
-                >
-                  <span>4006381333931</span>
-                  <span className="text-emerald-700 font-semibold">(Optics)</span>
-                </button>
+                {Object.keys(productsMap).length > 0 ? (
+                  <>
+                    <span className="font-mono text-[11px] text-slate-500">Registered in Ledger:</span>
+                    {Object.values(productsMap).slice(0, 3).map((item) => (
+                      <button
+                        key={item.barcode}
+                        type="button"
+                        onClick={() => setSample(item.barcode)}
+                        className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-mono text-[11px] transition-colors flex items-center gap-1.5"
+                      >
+                        <span>{item.barcode}</span>
+                        <span className="text-emerald-700 font-semibold">({item.brand.split(' ')[0]})</span>
+                      </button>
+                    ))}
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 text-slate-500 font-mono text-[11px]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                    <span>Ledger ready for input · Enter any barcode above to audit</span>
+                  </div>
+                )}
               </div>
+
 
               {/* Dynamic Verification Feedback Drawer */}
               {quickResult && (

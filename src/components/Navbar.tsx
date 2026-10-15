@@ -54,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navItems = [
     { id: 'home', label: 'Home', icon: Layers },
     { id: 'verify-product', label: 'Verify Product', icon: QrCode },
-    { id: 'geo-tracker', label: 'Geo-Tracker', icon: MapPin },
+    { id: 'geo-tracker', label: 'Map Tracker', icon: MapPin },
     { id: 'authenticity-dashboard', label: 'Authenticity Dashboard', icon: BarChart3 },
     { id: 'blockchain-explorer', label: 'Blockchain Explorer', icon: Binary },
     { id: 'manufacturer-portal', label: 'Manufacturer Portal', icon: Building2 },

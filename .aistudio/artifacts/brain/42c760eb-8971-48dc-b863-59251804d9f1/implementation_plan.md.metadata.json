@@ -1,0 +1,6 @@
+{
+  "summary": "Implementation plan to systematically remove all dummy/demo data across the platform, introduce robust empty states, initialize the user session as logged out, compute dashboard metrics dynamically from live state, and support real user-created products and custody records.",
+  "updatedAt": "2026-10-15T14:09:10.195022127Z",
+  "requestFeedback": true,
+  "userFacing": true
+}

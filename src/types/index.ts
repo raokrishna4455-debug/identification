@@ -50,7 +50,7 @@ export interface GpsTelemetry {
 export interface CryptographicProof {
   contractAddress: string;
   tokenId: string;
-  tokenStandard: 'ERC-721' | 'ERC-1155' | 'ERC-5192 Soulbound';
+  tokenStandard: 'ERC-721' | 'ERC-1155' | 'ERC-5192 Soulbound' | 'None';
   merkleRoot: string;
   merkleLeafHash: string;
   merkleDepth: number;
@@ -69,8 +69,9 @@ export interface ProductItem {
   upcFormat: string;
   title: string;
   brand: string;
-  category: 'Luxury Timepiece' | 'Biotechnology' | 'Precision Optics' | 'Fine Spirits' | 'Consumer Tech' | 'Apparel';
+  category: 'Luxury Timepiece' | 'Biotechnology' | 'Precision Optics' | 'Fine Spirits' | 'Consumer Tech' | 'Apparel' | 'Uncategorized';
   modelNumber: string;
+
   serialNumber: string;
   batchNumber: string;
   manufacturingDate: string;

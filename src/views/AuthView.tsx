@@ -30,13 +30,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess, onNavigateHo
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Form fields
-  const [email, setEmail] = useState('rolex.admin@authentix.io');
-  const [password, setPassword] = useState('Password123!');
+  // Form fields - clean slate without preloaded dummy credentials
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('manufacturer');
-  const [organization, setOrganization] = useState('Rolex SA Haute Horlogerie');
-  const [licenseNumber, setLicenseNumber] = useState('GS1-CH-761329');
+  const [organization, setOrganization] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [agreedTerms, setAgreedTerms] = useState(false);
 
@@ -45,39 +45,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess, onNavigateHo
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
 
-  // Quick switch demo accounts
-  const loadDemoAccount = (demoRole: UserRole) => {
-    if (demoRole === 'manufacturer') {
-      setEmail('rolex.admin@authentix.io');
-      setPassword('RolexSepolia2025!');
-      setName('Hans Wilsdorf Jr.');
-      setRole('manufacturer');
-      setOrganization('Rolex SA');
-      setLicenseNumber('GS1-CH-761329');
-    } else if (demoRole === 'auditor') {
-      setEmail('auditor@authentix.io');
-      setPassword('AuditorKey2025!');
-      setName('Alex Chen');
-      setRole('auditor');
-      setOrganization('Independent Product Auditor');
-      setLicenseNumber('');
-    } else if (demoRole === 'retailer') {
-      setEmail('bucherer.ny@authentix.io');
-      setPassword('BuchererNYC2025!');
-      setName('Marcus Vance');
-      setRole('retailer');
-      setOrganization('Bucherer 5th Avenue Flagship');
-      setLicenseNumber('US-AUTH-BUCH-0992');
-    } else if (demoRole === 'customs') {
-      setEmail('customs.ch@authentix.io');
-      setPassword('SwissCustoms2025!');
-      setName('Inspector Beatrix Müller');
-      setRole('customs');
-      setOrganization('Swiss Federal Customs Digital Administration');
-      setLicenseNumber('CH-EZV-PORTAL-882');
-    }
-    setErrorMsg(null);
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,43 +221,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess, onNavigateHo
             </div>
           </div>
 
-          {/* Quick Demo Profile Presets Bar */}
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
-            <div className="text-[10px] font-mono uppercase font-semibold text-slate-500 flex items-center justify-between">
-              <span>Quick Test Identity Switcher:</span>
-              <span className="text-emerald-700">Pre-Configured Credentials</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => loadDemoAccount('manufacturer')}
-                className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-mono text-[11px] font-medium transition-colors"
-              >
-                👑 Rolex SA (Brand)
-              </button>
-              <button
-                type="button"
-                onClick={() => loadDemoAccount('retailer')}
-                className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-mono text-[11px] font-medium transition-colors"
-              >
-                🏬 Bucherer 5th Ave (Shop)
-              </button>
-              <button
-                type="button"
-                onClick={() => loadDemoAccount('auditor')}
-                className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-mono text-[11px] font-medium transition-colors"
-              >
-                🔍 Alex Chen (Auditor)
-              </button>
-              <button
-                type="button"
-                onClick={() => loadDemoAccount('customs')}
-                className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-mono text-[11px] font-medium transition-colors"
-              >
-                🛃 Swiss Customs (Inspector)
-              </button>
-            </div>
-          </div>
+
 
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2 animate-in fade-in">

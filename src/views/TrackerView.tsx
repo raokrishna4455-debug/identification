@@ -25,42 +25,51 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { ProductItem, CustodyCheckpoint } from '../types';
+import { ProductTrackingMap } from '../components/ProductTrackingMap';
 
 interface TrackerViewProps {
   products: ProductItem[];
   selectedBarcode?: string;
   onSelectProduct: (barcode: string) => void;
   onUpdateCustodyCheckpoint: (barcode: string, checkpoint: CustodyCheckpoint) => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 export const TrackerView: React.FC<TrackerViewProps> = ({
   products,
   selectedBarcode,
   onSelectProduct,
-  onUpdateCustodyCheckpoint
+  onUpdateCustodyCheckpoint,
+  onNavigateTab
 }) => {
   const [activeBarcode, setActiveBarcode] = useState<string>(
-    selectedBarcode || products[0]?.barcode || '8901030865421'
+    selectedBarcode || products[0]?.barcode || ''
   );
   const [isDetectingGps, setIsDetectingGps] = useState(false);
   const [detectedLocationMsg, setDetectedLocationMsg] = useState<string | null>(null);
   const [selectedNodeIndex, setSelectedNodeIndex] = useState<number | null>(null);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
+  const [highlightedShopId, setHighlightedShopId] = useState<string | null>(null);
+
+  const mapSectionRef = React.useRef<HTMLDivElement>(null);
 
   // New location log form state
   const [showAddLocationModal, setShowAddLocationModal] = useState(false);
   const [newStage, setNewStage] = useState('Authorized Retail Shop Intake');
   const [newFacilityType, setNewFacilityType] = useState<CustodyCheckpoint['facilityType']>('retail_shop');
-  const [newLocationName, setNewLocationName] = useState('Harrods Fine Watch Room, Knightsbridge, London, UK');
-  const [newShopName, setNewShopName] = useState('Harrods Knightsbridge Boutique');
-  const [newOperator, setNewOperator] = useState('Harrods Authorized Intake Registry #884');
-  const [newNotes, setNewNotes] = useState('Unit optical serial scanned; tamper seal confirmed intact');
+  const [newLocationName, setNewLocationName] = useState('');
+  const [newShopName, setNewShopName] = useState('');
+  const [newOperator, setNewOperator] = useState('');
+  const [newNotes, setNewNotes] = useState('');
+  const [newLat, setNewLat] = useState<string>('40.7554');
+  const [newLng, setNewLng] = useState<string>('-73.9804');
   const [isSubmittingOnChain, setIsSubmittingOnChain] = useState(false);
 
   // Search filter for shops
   const [shopSearchQuery, setShopSearchQuery] = useState('');
 
-  const currentProduct = products.find((p) => p.barcode === activeBarcode) || products[0];
+  const currentProduct = products.find((p) => p.barcode === activeBarcode) || products[0] || null;
+
 
   useEffect(() => {
     if (selectedBarcode) {
@@ -124,14 +133,17 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
 
     setTimeout(() => {
       const hashStr = Array.from({ length: 10 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const parsedLat = parseFloat(newLat);
+      const parsedLng = parseFloat(newLng);
+
       const newPoint: CustodyCheckpoint = {
         id: `cp-usr-${Date.now()}`,
         stage: newStage,
         facilityType: newFacilityType,
         location: newLocationName,
-        shopName: newFacilityType === 'retail_shop' ? newShopName : undefined,
-        lat: newFacilityType === 'retail_shop' ? 51.4998 : 50.1109,
-        lng: newFacilityType === 'retail_shop' ? -0.1633 : 8.6821,
+        shopName: newFacilityType === 'retail_shop' ? (newShopName || newLocationName) : undefined,
+        lat: !isNaN(parsedLat) ? parsedLat : (newFacilityType === 'retail_shop' ? 40.7554 : 46.2044),
+        lng: !isNaN(parsedLng) ? parsedLng : (newFacilityType === 'retail_shop' ? -73.9804 : 6.1432),
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
         operator: newOperator,
         blockNumber: 19402125,
@@ -166,6 +178,8 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
       inStockUnits: 14,
       distance: '0.4 miles away (Current Region)',
       coordinates: '40.7554° N, 73.9804° W',
+      lat: 40.7554,
+      lng: -73.9804,
       manager: 'Store Director M. Vance',
       isAuthorized: true
     },
@@ -180,6 +194,8 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
       inStockUnits: 28,
       distance: '1.1 miles away',
       coordinates: '40.7533° N, 73.9967° W',
+      lat: 40.7533,
+      lng: -73.9967,
       manager: 'Pro Optics Lead H. Stern',
       isAuthorized: true
     },
@@ -194,6 +210,8 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
       inStockUnits: 95,
       distance: 'Cold Vault Monitored (-4°C)',
       coordinates: '44.0225° N, 92.4666° W',
+      lat: 44.0225,
+      lng: -92.4666,
       manager: 'Dr. Rebecca Chang, PharmD',
       isAuthorized: true
     },
@@ -208,6 +226,8 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
       inStockUnits: 8,
       distance: 'International Node',
       coordinates: '51.5126° N, 0.1448° W',
+      lat: 51.5126,
+      lng: -0.1448,
       manager: 'Boutique Director Charles L.',
       isAuthorized: true
     },
@@ -222,10 +242,17 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
       inStockUnits: 19,
       distance: 'Asia-Pacific Hub',
       coordinates: '35.6717° N, 139.7650° E',
+      lat: 35.6717,
+      lng: 139.7650,
       manager: 'Salon Master Kenji Sato',
       isAuthorized: true
     }
   ];
+
+  const handleLocateShopOnMap = (shop: typeof authorizedRetailShops[0]) => {
+    setHighlightedShopId(shop.id);
+    mapSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const filteredShops = authorizedRetailShops.filter((s) => 
     s.name.toLowerCase().includes(shopSearchQuery.toLowerCase()) ||
@@ -252,37 +279,69 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
         </div>
 
         {/* Product selector dropdown & quick scan */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-2xs">
-            <Compass className="w-4 h-4 text-emerald-600" />
-            <select
-              value={activeBarcode}
-              onChange={(e) => {
-                setActiveBarcode(e.target.value);
-                onSelectProduct(e.target.value);
-              }}
-              className="font-heading text-xs font-semibold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
-            >
-              {products.map((p) => (
-                <option key={p.barcode} value={p.barcode}>
-                  {p.title} ({p.brand})
-                </option>
-              ))}
-            </select>
-          </div>
+        {products.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-2xs">
+              <Compass className="w-4 h-4 text-emerald-600" />
+              <select
+                value={activeBarcode}
+                onChange={(e) => {
+                  setActiveBarcode(e.target.value);
+                  onSelectProduct(e.target.value);
+                }}
+                className="font-heading text-xs font-semibold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
+              >
+                {products.map((p) => (
+                  <option key={p.barcode} value={p.barcode}>
+                    {p.title} ({p.brand})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <button
-            onClick={() => setShowAddLocationModal(true)}
-            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-heading text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Log Custody Checkpoint</span>
-          </button>
-        </div>
+            <button
+              onClick={() => setShowAddLocationModal(true)}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-heading text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Log Custody Checkpoint</span>
+            </button>
+          </div>
+        )}
       </div>
 
+      {products.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center max-w-xl mx-auto shadow-xs space-y-4 my-8">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
+            <MapPin className="w-7 h-7" />
+          </div>
+          <h2 className="font-heading text-2xl font-bold text-slate-900">
+            No Tracked Products in Ledger
+          </h2>
+          <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+            There are currently no products registered in your decentralized ledger. Mint a product batch in the Manufacturer Portal to record genesis manufacturing cleanrooms and trace real-time custody to retail shops.
+          </p>
+          <div className="pt-2 flex justify-center gap-3">
+            <button
+              onClick={() => onNavigateTab ? onNavigateTab('manufacturer-portal') : null}
+              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-heading text-xs font-semibold shadow-xs transition-colors flex items-center gap-2"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Mint Product Batch</span>
+            </button>
+            <button
+              onClick={() => onNavigateTab ? onNavigateTab('verify-product') : null}
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-heading text-xs font-semibold transition-colors"
+            >
+              Verify Barcode
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Product Summary Header Card */}
       {currentProduct && (
+
         <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center gap-4">
             <img
@@ -436,15 +495,15 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
       </div>
 
       {/* INTERACTIVE GEOGRAPHIC CUSTODY ROUTE MAP (MANUFACTURING TO SHOPS) */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+      <div ref={mapSectionRef} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="font-heading text-xl font-bold text-slate-900 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-emerald-600" />
-              Manufacturing to Retail Store Transit Path
+              Interactive Geospatial Map: Manufacturing to Retail Stores
             </h2>
             <p className="text-xs text-slate-500">
-              Each milestone represents an immutable, timestamped cryptographically signed handover on Ethereum Sepolia.
+              Live cryptographic telemetry and interactive route mapping for orders and products across international borders, customs clearance, transit hubs, and authorized retail stores.
             </p>
           </div>
 
@@ -455,6 +514,16 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Real Interactive Leaflet Map for Order & Product Tracking */}
+        <ProductTrackingMap
+          product={currentProduct}
+          checkpoints={checkpoints}
+          selectedCheckpointIndex={selectedNodeIndex}
+          onSelectCheckpoint={(idx) => setSelectedNodeIndex(idx)}
+          authorizedShops={authorizedRetailShops}
+          highlightedShopId={highlightedShopId}
+        />
 
         {/* Visual Node Graph Track */}
         <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-50 via-emerald-50/20 to-sky-50/30 border border-slate-200 relative overflow-hidden">
@@ -646,18 +715,21 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
                   <span className="text-emerald-700 font-semibold">{shop.distance}</span>
                 </div>
 
-                <div className="flex items-center justify-between pt-1">
-                  <span className="font-mono text-[10px] text-slate-400">
-                    {shop.coordinates}
-                  </span>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 gap-2">
                   <button
-                    onClick={() => {
-                      alert(`Verified ${shop.name}: On-chain retailer license #${shop.licenseId} validated against Sepolia Brand Master.`);
-                    }}
-                    className="text-xs font-heading font-semibold text-emerald-700 hover:underline flex items-center gap-1"
+                    onClick={() => handleLocateShopOnMap(shop)}
+                    className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 font-heading text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <span>Inspect License</span>
-                    <ArrowRight className="w-3 h-3" />
+                    <Navigation className="w-3 h-3 text-sky-600" />
+                    <span>Locate on Map</span>
+                  </button>
+
+                  <button
+                    onClick={() => copyToClipboard(shop.licenseId, shop.id)}
+                    className="text-xs font-heading font-semibold text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>{copiedHash === shop.id ? 'Copied License ID!' : `License #${shop.licenseId}`}</span>
+                    <Copy className="w-3 h-3" />
                   </button>
                 </div>
               </div>
@@ -665,6 +737,9 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
           ))}
         </div>
       </div>
+    </>
+  )}
+
 
       {/* LOG NEW CUSTODY CHECKPOINT MODAL */}
       {showAddLocationModal && (
@@ -741,6 +816,99 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
                   onChange={(e) => setNewLocationName(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs"
                 />
+
+                {/* Quick Presets */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[10px] font-mono text-slate-400">Quick Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewLocationName('530 5th Avenue, New York, NY 10036, USA');
+                      setNewShopName('Bucherer 5th Avenue Flagship');
+                      setNewFacilityType('retail_shop');
+                      setNewLat('40.7554');
+                      setNewLng('-73.9804');
+                      setNewStage('Authorized Retail Boutique Stocking');
+                    }}
+                    className="px-2 py-0.5 rounded bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-[10px] font-mono text-slate-600 transition-colors"
+                  >
+                    NYC 5th Ave
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewLocationName('87-135 Brompton Rd, Knightsbridge, London SW1X 7XL, UK');
+                      setNewShopName('Harrods Fine Watch Room');
+                      setNewFacilityType('retail_shop');
+                      setNewLat('51.4998');
+                      setNewLng('-0.1633');
+                      setNewStage('Harrods Boutique Official Intake');
+                    }}
+                    className="px-2 py-0.5 rounded bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-[10px] font-mono text-slate-600 transition-colors"
+                  >
+                    London Harrods
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewLocationName('4 Chome-5-11 Ginza, Chuo City, Tokyo, Japan');
+                      setNewShopName('Ginza Wako Master Timepiece Salon');
+                      setNewFacilityType('retail_shop');
+                      setNewLat('35.6717');
+                      setNewLng('139.7650');
+                      setNewStage('Tokyo Flagship Official Intake');
+                    }}
+                    className="px-2 py-0.5 rounded bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-[10px] font-mono text-slate-600 transition-colors"
+                  >
+                    Tokyo Ginza
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition((pos) => {
+                          setNewLat(pos.coords.latitude.toFixed(4));
+                          setNewLng(pos.coords.longitude.toFixed(4));
+                          setNewLocationName(`Local Geofence (${pos.coords.latitude.toFixed(2)}°, ${pos.coords.longitude.toFixed(2)}°)`);
+                        });
+                      }
+                    }}
+                    className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[10px] font-mono font-semibold transition-colors flex items-center gap-1"
+                  >
+                    <Satellite className="w-2.5 h-2.5" />
+                    <span>My GPS</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Coordinates inputs */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Map Latitude (°N/S)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newLat}
+                    onChange={(e) => setNewLat(e.target.value)}
+                    placeholder="e.g. 40.7554"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Map Longitude (°E/W)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newLng}
+                    onChange={(e) => setNewLng(e.target.value)}
+                    placeholder="e.g. -73.9804"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-mono"
+                  />
+                </div>
               </div>
 
               <div>

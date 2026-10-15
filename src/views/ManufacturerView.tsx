@@ -17,29 +17,31 @@ import {
   ArrowRight,
   ExternalLink
 } from 'lucide-react';
-import { ProductItem } from '../types';
+import { ProductItem, UserProfile } from '../types';
 
 interface ManufacturerViewProps {
+  currentUser?: UserProfile | null;
   onAddNewProduct: (product: ProductItem) => void;
   existingProducts: ProductItem[];
   onSelectTab: (tab: string) => void;
 }
 
 export const ManufacturerView: React.FC<ManufacturerViewProps> = ({ 
+  currentUser,
   onAddNewProduct, 
   existingProducts,
   onSelectTab 
 }) => {
   const [activeTab, setActiveTab] = useState<'mint' | 'catalog' | 'labels'>('mint');
   
-  // Mint form state
-  const [brand, setBrand] = useState('Audemars Piguet & Co.');
-  const [productName, setProductName] = useState('Royal Oak Selfwinding Flying Tourbillon');
+  // Mint form state - initialized cleanly without dummy placeholders
+  const [brand, setBrand] = useState(currentUser?.organization || '');
+  const [productName, setProductName] = useState('');
   const [category, setCategory] = useState<ProductItem['category']>('Luxury Timepiece');
-  const [barcodeInput, setBarcodeInput] = useState('7613298410294');
-  const [batchNumber, setBatchNumber] = useState('BATCH-AP-2025-TOURB-01');
-  const [quantity, setQuantity] = useState(250);
-  const [manufacturingPlant, setManufacturingPlant] = useState('Le Brassus, Vallée de Joux, Switzerland');
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [batchNumber, setBatchNumber] = useState('');
+  const [quantity, setQuantity] = useState(100);
+  const [manufacturingPlant, setManufacturingPlant] = useState('');
   const [tokenStandard, setTokenStandard] = useState<'ERC-721' | 'ERC-1155' | 'ERC-5192 Soulbound'>('ERC-5192 Soulbound');
   const [coldChainMonitored, setColdChainMonitored] = useState(false);
   const [isMinting, setIsMinting] = useState(false);
@@ -50,7 +52,9 @@ export const ManufacturerView: React.FC<ManufacturerViewProps> = ({
 
   const handleMintBatch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!barcodeInput.trim() || !productName.trim() || !brand.trim()) return;
     setIsMinting(true);
+
 
     setTimeout(() => {
       const cleanBarcode = barcodeInput.trim() || '7613298410294';
@@ -104,6 +108,9 @@ export const ManufacturerView: React.FC<ManufacturerViewProps> = ({
             id: `cp-${Date.now()}-1`,
             stage: 'Genesis Manufacture & Cryptographic Inscription',
             location: manufacturingPlant,
+            facilityType: 'manufacturing',
+            lat: 46.2044,
+            lng: 6.1432,
             timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
             operator: `${brand} Genesis Master Key`,
             blockNumber: 19402121,
@@ -116,6 +123,9 @@ export const ManufacturerView: React.FC<ManufacturerViewProps> = ({
             id: `cp-${Date.now()}-2`,
             stage: 'Central Vault Logistical Dispatch',
             location: 'Geneva Freeport Bonded Hub, Switzerland',
+            facilityType: 'warehouse',
+            lat: 46.2166,
+            lng: 6.1300,
             timestamp: 'Pending Handover',
             operator: 'Authorized Carrier Key',
             blockNumber: 19402122,
@@ -236,6 +246,7 @@ export const ManufacturerView: React.FC<ManufacturerViewProps> = ({
                     required
                     value={brand}
                     onChange={(e) => setBrand(e.target.value)}
+                    placeholder="e.g. Rolex SA, Zeiss, or BioTech Labs"
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
@@ -249,6 +260,7 @@ export const ManufacturerView: React.FC<ManufacturerViewProps> = ({
                     required
                     value={productName}
                     onChange={(e) => setProductName(e.target.value)}
+                    placeholder="e.g. Chronometer Series 4 or Sterile Peptide Vial"
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
@@ -281,6 +293,7 @@ export const ManufacturerView: React.FC<ManufacturerViewProps> = ({
                     required
                     value={barcodeInput}
                     onChange={(e) => setBarcodeInput(e.target.value)}
+                    placeholder="e.g. 7613298410294"
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
@@ -310,6 +323,7 @@ export const ManufacturerView: React.FC<ManufacturerViewProps> = ({
                     required
                     value={batchNumber}
                     onChange={(e) => setBatchNumber(e.target.value)}
+                    placeholder="e.g. BATCH-2026-CH-01"
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 font-mono text-xs"
                   />
                 </div>
@@ -323,10 +337,12 @@ export const ManufacturerView: React.FC<ManufacturerViewProps> = ({
                     required
                     value={manufacturingPlant}
                     onChange={(e) => setManufacturingPlant(e.target.value)}
+                    placeholder="e.g. Geneva Cleanroom Suite B, Switzerland"
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs"
                   />
                 </div>
               </div>
+
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 <div>
@@ -468,70 +484,91 @@ export const ManufacturerView: React.FC<ManufacturerViewProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {existingProducts.map((item) => (
-              <div 
-                key={item.barcode}
-                className="p-4 rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-sm transition-all space-y-3 bg-white"
-              >
-                <div className="flex items-center gap-3">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="w-12 h-12 rounded-lg object-cover border border-slate-200"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-heading font-semibold text-xs text-slate-900 truncate">
-                      {item.title}
-                    </div>
-                    <div className="font-mono text-[10px] text-slate-500">
-                      GS1: {item.barcode}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-lg bg-slate-50 font-mono text-[11px] text-slate-600 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Batch:</span>
-                    <span className="font-semibold text-slate-800">{item.batchNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Token Standard:</span>
-                    <span className="text-emerald-700 font-semibold">{item.proof.tokenStandard}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Checkpoints:</span>
-                    <span>{item.custodyPath.length} logged</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <button
-                    onClick={() => {
-                      setSelectedProductForLabels(item);
-                      setActiveTab('labels');
-                    }}
-                    className="text-xs text-sky-700 hover:underline font-heading font-medium flex items-center gap-1"
-                  >
-                    <Printer className="w-3.5 h-3.5" />
-                    Generate Label
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      onSelectTab('verify-product');
-                    }}
-                    className="text-xs text-emerald-700 hover:underline font-heading font-semibold flex items-center gap-1"
-                  >
-                    View Twin
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+          {existingProducts.length === 0 ? (
+            <div className="py-12 text-center border border-dashed border-slate-200 rounded-xl space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                <Building2 className="w-6 h-6" />
               </div>
-            ))}
-          </div>
+              <div className="font-heading font-semibold text-sm text-slate-800">
+                No Batches Minted Yet
+              </div>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Deploy your first cryptographic product batch using the Issue New Cryptographic Batch form to view digital twins and print GS1 labels.
+              </p>
+              <button
+                onClick={() => setActiveTab('mint')}
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-heading text-xs font-semibold"
+              >
+                Go to Minting Studio
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {existingProducts.map((item) => (
+                <div 
+                  key={item.barcode}
+                  className="p-4 rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-sm transition-all space-y-3 bg-white"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-12 h-12 rounded-lg object-cover border border-slate-200"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-heading font-semibold text-xs text-slate-900 truncate">
+                        {item.title}
+                      </div>
+                      <div className="font-mono text-[10px] text-slate-500">
+                        GS1: {item.barcode}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-slate-50 font-mono text-[11px] text-slate-600 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Batch:</span>
+                      <span className="font-semibold text-slate-800">{item.batchNumber}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Token Standard:</span>
+                      <span className="text-emerald-700 font-semibold">{item.proof.tokenStandard}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Checkpoints:</span>
+                      <span>{item.custodyPath.length} logged</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      onClick={() => {
+                        setSelectedProductForLabels(item);
+                        setActiveTab('labels');
+                      }}
+                      className="text-xs text-sky-700 hover:underline font-heading font-medium flex items-center gap-1"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      Generate Label
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        onSelectTab('verify-product');
+                      }}
+                      className="text-xs text-emerald-700 hover:underline font-heading font-semibold flex items-center gap-1"
+                    >
+                      View Twin
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
+
 
       {/* TAB 3: PRINT PACKAGING LABELS */}
       {activeTab === 'labels' && (
